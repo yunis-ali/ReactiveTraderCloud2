@@ -95,7 +95,7 @@ export const Portal = ({
   })
 
   useEffect(() => {
-    const externalWindow = window.open('', 'CURRENCYPAIR', 'width=600, height=400, left=200, top=200') as Window;
+    const externalWindow = window.open('', '', 'width=600, height=400, left=200, top=200') as Window;
     externalWindow.document.body.appendChild(container)
     copyStyles(document, externalWindow.document);
     return () => {
@@ -155,7 +155,7 @@ const TearOff: React.FC<TearOffProps> = ({ render, externalWindowProps, tornOff,
   if (tornOff) {
     return (
       //<ExternalWindow onUnload={popIn} {...externalWindowProps} />
-       <Portal className="TornOffPortal">
+       <Portal>
          <RouteWrapper>
            <SpotTileStyle>
              {render(popOut, tornOff)}
