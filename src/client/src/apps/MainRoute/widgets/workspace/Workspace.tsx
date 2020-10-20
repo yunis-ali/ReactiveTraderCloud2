@@ -39,7 +39,7 @@ const Workspace: React.FC<Props> = ({
   onPopoutClick,
 }) => {
   const [currency, setCurrencyOption] = useState(ALL)
-  const [tileView, setTileView] = useLocalStorage('tileView', TileView.Analytics)
+  const [tileView, setTileView] = useState(TileView.Analytics)
 
   return (
     <div data-qa="workspace__tiles-workspace">

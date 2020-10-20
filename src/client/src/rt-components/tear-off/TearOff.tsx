@@ -1,9 +1,21 @@
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback, useRef, useState, useEffect } from 'react'
+import ReactDOM from 'react-dom'
 import ExternalWindow, { ExternalWindowProps } from './ExternalWindow'
 import styled from 'styled-components/macro'
 import { useDispatch } from 'react-redux'
 import { usePlatform } from 'rt-platforms'
 import { LayoutActions } from 'rt-actions'
+import { RouteStyle } from 'rt-components'
+import { RouteWrapper } from 'rt-components'
+
+const SpotTileStyle = styled.div`
+  min-width: 26rem;
+  width: 26rem;
+  min-height: 12.2rem;
+  height: 12.2rem;
+  padding: 0 0.575rem 0.5rem 0.575rem;
+  margin
+`
 
 type RenderCB = (popOut: (x?: number, y?: number) => void, tornOff: boolean) => JSX.Element
 
@@ -57,8 +69,47 @@ export interface TearOffProps {
   dragTearOff: boolean
 }
 
+export interface PortalProps {
+  children: React.ReactNode,
+  className?: string,
+  element?: string
+}
+
+
+function copyStyles(sourceDoc: Document, targetDoc: Document) {
+  Array.from(sourceDoc.querySelectorAll('link[rel="stylesheet"], style'))
+    .forEach(link => {
+      targetDoc.head.appendChild(link.cloneNode(true));
+    })
+}
+
+export const Portal = ({
+  children,
+  className = 'portal',
+  element = 'div'
+}: PortalProps) => {
+  const [container] = useState(() => {
+    const el = document.createElement(element)
+    el.classList.add(className)
+    return el
+  })
+
+  useEffect(() => {
+    const externalWindow = window.open('', 'CURRENCYPAIR', 'width=600, height=400, left=200, top=200') as Window;
+    externalWindow.document.body.appendChild(container)
+    copyStyles(document, externalWindow.document);
+    return () => {
+      externalWindow.document.body.removeChild(container)
+    }
+  }, [])
+
+  return ReactDOM.createPortal(children, container)
+}
+
+
 const TearOff: React.FC<TearOffProps> = ({ render, externalWindowProps, tornOff, dragTearOff }) => {
-  const { allowTearOff } = usePlatform()
+  const platform = usePlatform()
+  const { allowTearOff } = platform
   const targetMouseXRef = useRef<number>()
   const targetMouseYRef = useRef<number>()
 
@@ -102,7 +153,16 @@ const TearOff: React.FC<TearOffProps> = ({ render, externalWindowProps, tornOff,
   }
 
   if (tornOff) {
-    return <ExternalWindow onUnload={popIn} {...externalWindowProps} />
+    return (
+      //<ExternalWindow onUnload={popIn} {...externalWindowProps} />
+       <Portal className="TornOffPortal">
+         <RouteWrapper>
+           <SpotTileStyle>
+             {render(popOut, tornOff)}
+           </SpotTileStyle>
+         </ RouteWrapper>
+       </Portal>
+    )
   }
 
   if (dragTearOff) {

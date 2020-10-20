@@ -7,7 +7,7 @@ import { InteropTopics, platformHasFeature, usePlatform } from 'rt-platforms'
 import { Subscription } from 'rxjs'
 import { useLocalStorage } from 'rt-util'
 
-const SpotTileStyle = styled.div`
+ const SpotTileStyle = styled.div`
   min-width: 26rem;
   width: 26rem;
   min-height: 12.2rem;

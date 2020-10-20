@@ -32,14 +32,14 @@ export const Router: FC = () => (
         </RouteWrapper>
       )}
     />
-    <Route
+    {/* <Route
       path="/spot/:symbol"
       render={routeProps => (
         <RouteWrapper windowType="sub" title={currencyFormatter(routeProps.match.params.symbol)}>
           <SpotRoute {...routeProps} />
         </RouteWrapper>
       )}
-    />
+    /> */}
     <Route
       exact
       path="/"
