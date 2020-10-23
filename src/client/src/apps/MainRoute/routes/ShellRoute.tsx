@@ -60,7 +60,7 @@ const ShellRoute: React.FC<Props> = ({ header, footer }) => {
             id="blotter"
             dragTearOff
             externalWindowProps={addLayoutToConfig(externalWindowDefault.blotterRegion, blotter)}
-            render={(popOut, tornOff) => (
+            render={(popOut, popIn, tornOff) => (
               <BlotterContainer
                 onPopoutClick={popOut}
                 tornOff={tornOff}
@@ -78,7 +78,7 @@ const ShellRoute: React.FC<Props> = ({ header, footer }) => {
         id="liveRates"
         dragTearOff={false}
         externalWindowProps={addLayoutToConfig(externalWindowDefault.liveRatesRegion, liveRates)}
-        render={(popOut, tornOff) => (
+        render={(popOut, popIn, tornOff) => (
           <WorkspaceWrapper data-qa="shell-route__workspace-wrapper">
             <OverflowScroll>
               <WorkspaceContainer
@@ -100,7 +100,7 @@ const ShellRoute: React.FC<Props> = ({ header, footer }) => {
         id="region"
         dragTearOff
         externalWindowProps={addLayoutToConfig(externalWindowDefault.analyticsRegion, analytics)}
-        render={(popOut, tornOff) => (
+        render={(popOut, popIn, tornOff) => (
           <AnalyticsContainer
             onPopoutClick={popOut}
             tornOff={tornOff}

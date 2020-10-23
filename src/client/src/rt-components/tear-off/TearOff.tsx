@@ -73,20 +73,33 @@ export interface PortalProps {
   children: React.ReactNode,
   className?: string,
   element?: string
+  onUnload?: Function
+  externalWindowProps?: Partial<ExternalWindowProps>
 }
 
 
 function copyStyles(sourceDoc: Document, targetDoc: Document) {
-  Array.from(sourceDoc.querySelectorAll('link[rel="stylesheet"], style'))
-    .forEach(link => {
-      targetDoc.head.appendChild(link.cloneNode(true));
+  Array.from(sourceDoc.querySelectorAll('link[rel="stylesheet"], style, meta'))
+    .forEach(stylesheet => {
+      console.info('copying stylesheet:', stylesheet)
+      targetDoc.head.appendChild(stylesheet.cloneNode(true));
+    })
+}
+
+function removeStyles(document: Document) {
+  document.querySelectorAll('link[rel="stylesheet"], style, meta')
+    .forEach(stylesheet => {
+      console.log('deleting stylesheet:', stylesheet)
+      stylesheet.parentNode!.removeChild(stylesheet)
     })
 }
 
 export const Portal = ({
   children,
   className = 'portal',
-  element = 'div'
+  element = 'div',
+  externalWindowProps,
+  onUnload
 }: PortalProps) => {
   const [container] = useState(() => {
     const el = document.createElement(element)
@@ -94,12 +107,34 @@ export const Portal = ({
     return el
   })
 
+  let externalWindow: Window
   useEffect(() => {
-    const externalWindow = window.open('', '', 'width=600, height=400, left=200, top=200') as Window;
+    console.info('in useEffect')
+    externalWindow = window.open('', '', 'width=400, height=200, left=200, top=200') as Window;
+    if (onUnload instanceof Function) {
+      externalWindow.addEventListener('unload', () => onUnload())
+    }
     externalWindow.document.body.appendChild(container)
-    copyStyles(document, externalWindow.document);
+    //console.info('externalWP title', externalWindowProps.title)
+    //externalWindow.document.title = externalWindowProps.config.name
+    copyStyles(document, externalWindow!.document)
+
+    const options = {
+      childList: true,
+      subtree: true
+    }
+
+    const onCssChange = () => {
+      removeStyles(externalWindow.document)
+      copyStyles(document, externalWindow!.document);
+    }
+
+    const observer = new MutationObserver(onCssChange)
+    observer.observe(document.head, options)
+
     return () => {
-      externalWindow.document.body.removeChild(container)
+      console.info("In Portal return")
+      observer.disconnect()
     }
   }, [])
 
@@ -117,6 +152,7 @@ const TearOff: React.FC<TearOffProps> = ({ render, externalWindowProps, tornOff,
   const windowName = externalWindowProps.config && externalWindowProps.config.name
   const popOut = useCallback(
     (mouseScreenX?: number, mouseScreenY?: number) => {
+      console.info('in popOut definition')
       const popOutX =
         typeof targetMouseXRef.current !== 'undefined' && typeof mouseScreenX !== 'undefined'
           ? mouseScreenX - targetMouseXRef.current
@@ -138,8 +174,10 @@ const TearOff: React.FC<TearOffProps> = ({ render, externalWindowProps, tornOff,
     [windowName, dispatch]
   )
   const popIn = useCallback(
-    () =>
-      dispatch(LayoutActions.updateContainerVisibilityAction({ name: windowName, display: true })),
+    () => {
+      console.info("in popIn definition")
+      dispatch(LayoutActions.updateContainerVisibilityAction({ name: windowName, display: true }))
+    },
     [windowName, dispatch]
   )
 
@@ -153,15 +191,19 @@ const TearOff: React.FC<TearOffProps> = ({ render, externalWindowProps, tornOff,
   }
 
   if (tornOff) {
+    if (['LiveRates', 'analytics'].includes(externalWindowProps!.config!.name!)) { // only apply to tiles
+      return (
+        <ExternalWindow onUnload={popIn} {...externalWindowProps} />
+      )
+    }
     return (
-      //<ExternalWindow onUnload={popIn} {...externalWindowProps} />
-       <Portal>
-         <RouteWrapper>
-           <SpotTileStyle>
-             {render(popOut, tornOff)}
-           </SpotTileStyle>
-         </ RouteWrapper>
-       </Portal>
+      <Portal onUnload={popIn} externalWindowProps={externalWindowProps}>
+        <RouteWrapper>
+          <SpotTileStyle>
+            {render(popIn, tornOff)}
+          </SpotTileStyle>
+        </ RouteWrapper>
+      </Portal>
     )
   }
 
