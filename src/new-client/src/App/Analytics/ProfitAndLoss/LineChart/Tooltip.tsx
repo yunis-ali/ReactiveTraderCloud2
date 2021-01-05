@@ -5,12 +5,7 @@ import { dataPoints$ } from "App/Analytics/ProfitAndLoss/LineChart/dataPoints$"
 import { format } from "date-fns"
 import { RefObject, useEffect, useLayoutEffect, useRef } from "react"
 import { createPortal } from "react-dom"
-import {
-  debounceTime,
-  distinctUntilChanged,
-  map,
-  withLatestFrom,
-} from "rxjs/operators"
+import { map, withLatestFrom } from "rxjs/operators"
 import styled from "styled-components/macro"
 import { formatWithScale, precisionNumberFormatter } from "utils/formatNumber"
 
@@ -45,7 +40,6 @@ const [hoverX$, onHover] = createListener<number | null>()
 
 const [useHoverPoint] = bind(
   hoverX$.pipe(
-    debounceTime(10),
     withLatestFrom(
       dataPoints$.pipe(
         map(({ points, xScale, yScale }) =>
@@ -78,14 +72,6 @@ const [useHoverPoint] = bind(
       } while (to.idx - from.idx > 1)
       return points[hoverX - from.x < to.x - hoverX ? from.idx : to.idx]
     }),
-    map(
-      (point) =>
-        point && {
-          ...point,
-          date: format(point.date, "HH:mm:ss aaaa"),
-          value: formatWithScale(point.value, formatToPrecision1),
-        },
-    ),
   ),
   null,
 )
@@ -133,23 +119,26 @@ export const Tooltip: React.FC<{ svgRef: RefObject<SVGSVGElement> }> = ({
 
   useLayoutEffect(() => {
     // We have to correct the position of the tooltip when it overflows
-    const inner = tooltipDivRef.current!.children[0]?.getBoundingClientRect()
-    const outter = (svgRef.current?.parentNode as any)?.getBoundingClientRect()
-    if (!inner || !outter) return
+    const tooltipEl = tooltipDivRef.current!.children[0] as HTMLDivElement
+    const wrapperEl = svgRef.current?.parentNode as HTMLDivElement | null
+
+    const tooltipRect = tooltipEl?.getBoundingClientRect()
+    const wrapperRect = wrapperEl?.getBoundingClientRect()
+    if (!tooltipRect || !wrapperRect) return
     if (
-      outter.left + tooltipPositionRef.current.x + inner.width >
-      outter.right
+      wrapperRect.left + tooltipPositionRef.current.x + tooltipRect.width >
+      wrapperRect.right
     ) {
-      tooltipPositionRef.current.x = outter.width - inner.width
+      tooltipPositionRef.current.x = wrapperRect.width - tooltipRect.width
     }
     if (
-      outter.top + tooltipPositionRef.current.y + inner.height >
-      outter.bottom
+      wrapperRect.top + tooltipPositionRef.current.y + tooltipRect.height >
+      wrapperRect.bottom
     ) {
-      tooltipPositionRef.current.y = outter.height - inner.height
+      tooltipPositionRef.current.y = wrapperRect.height - tooltipRect.height
     }
-    ;(tooltipDivRef.current!.children[0]! as any).style.transform = `
-      translate(${tooltipPositionRef.current.x}px, ${tooltipPositionRef.current.y}px)
+    tooltipEl.style.transform = `
+translate(${tooltipPositionRef.current.x}px, ${tooltipPositionRef.current.y}px)
     `
   })
 
@@ -166,23 +155,27 @@ export const Tooltip: React.FC<{ svgRef: RefObject<SVGSVGElement> }> = ({
           x2={point.x}
           y1="0"
           y2={LINE_CHART_HEIGHT}
-        ></line>
+        />
         <circle
           r="4"
-          fill="url(#colorValue)"
+          fill={point.value >= 0 ? "#28c988" : "#f94c4c"}
           strokeWidth="2"
           stroke="#fff"
           cx={point.x}
           cy={point.y}
-        ></circle>
+        />
         {createPortal(
           <ToolTipStyle
             style={{
               transform: `translate(${tooltipPositionRef.current.x}px, ${tooltipPositionRef.current.y}px)`,
             }}
           >
-            <ToolTipChildLeft>{point.date}</ToolTipChildLeft>
-            <ToolTipChildRight>{point.value}</ToolTipChildRight>
+            <ToolTipChildLeft>
+              {format(point.date, "HH:mm:ss aaaa")}
+            </ToolTipChildLeft>
+            <ToolTipChildRight>
+              {formatWithScale(point.value, formatToPrecision1)}
+            </ToolTipChildRight>
           </ToolTipStyle>,
           tooltipDivRef.current!,
         )}
